@@ -1,0 +1,33 @@
+#!/bin/bash +H
+COLOR="green"
+COLUMN="bcache"
+MSG=""
+MSGHIDDEN=""
+BCACHEROOT="/sys/fs/bcache/"
+if [ -d ${BCACHEROOT} ]; then
+	for I in `find ${BCACHEROOT} -maxdepth 1 -mindepth 1 -type d`; do 
+		UUID=`echo ${I} | grep -Eo '[^/]+/?$' | cut -d / -f1`
+		UUIDSHORT=`echo ${UUID} | sed 's/-//g'`
+		#MSG=`echo -e "${MSG}<b>${UUID}</b>\n"`
+		MSG=`echo -e "${MSG}<h3>Volume ${UUID}</h3>"`
+		for J in `find ${I}/ ${I}/stats_five_minute/ -maxdepth 1 -name cache_\*`; do
+			STAT=`cat ${J}`
+			MSGHIDDEN=`echo -e "${MSGHIDDEN}\n${UUIDSHORT}_${J##*/} : ${STAT}"`
+			#MSGHIDDEN=`cat ${I}/stats_five_minute/${J}`
+			MSG=`echo -e "${MSG}\n${STAT}\t${J##*/}"`
+		done
+		MSG=`echo -e "${MSG}\n"`
+	done
+else
+	COLOR="YELLOW"
+	MSG="&${COLOR}bcache not installed"
+fi
+if [ -z "${MSG}" ]; then
+	COLOR="YELLOW"
+	MSG="&${COLOR}no caching devices found"
+fi
+MSG=`echo -e "<!--${MSGHIDDEN}\n-->\n${MSG}"`
+# Nachricht an Xymon übermitteln
+$BB $BBDISP "status $MACHINE.$COLUMN $COLOR `date`
+${MSG}"
+exit 0
